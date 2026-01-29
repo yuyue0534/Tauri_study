@@ -96,6 +96,24 @@ pub struct OrderItem {
     pub remark: String,
 }
 
+fn ensure_customers_source_column(conn: &Connection) -> SqliteResult<()> {
+    // 检查 customers 是否已有 source 列
+    let mut stmt = conn.prepare("PRAGMA table_info(customers)")?;
+    let mut rows = stmt.query([])?;
+    while let Some(row) = rows.next()? {
+        let col_name: String = row.get(1)?; // 第2列是列名
+        if col_name == "source" {
+            return Ok(());
+        }
+    }
+    // SQLite 不支持 ADD COLUMN IF NOT EXISTS，所以先检查再执行
+    conn.execute(
+        "ALTER TABLE customers ADD COLUMN source TEXT NOT NULL DEFAULT ''",
+        [],
+    )?;
+    Ok(())
+}
+
 impl Database {
     /// 创建新的数据库连接
     pub fn new(db_path: PathBuf) -> SqliteResult<Self> {
@@ -125,12 +143,15 @@ impl Database {
                 credit_limit REAL DEFAULT 0,
                 balance REAL DEFAULT 0,
                 remark TEXT DEFAULT '',
-                source TEXT NOT NULL DEFAULT '',
+                source TEXT DEFAULT '',
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             )",
             [],
         )?;
+
+        // 兼容旧库：旧 customers 表可能没有 source 列（IF NOT EXISTS 不会补列）
+        ensure_customers_source_column(&conn)?;
 
         conn.execute(
             "CREATE TABLE IF NOT EXISTS products (
