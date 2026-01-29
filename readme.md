@@ -121,6 +121,8 @@ npm install
 npm run dev
 ```
 
+替换icon图标的指令: pnpm tauri icon src-tauri/icons/xxxxxxx.png
+
 ---
 
 ### 🧩 Step 2：初始化 Tauri
