@@ -28,11 +28,11 @@ export function CustomersPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const createModal = useModal();
   const detailModal = useModal();
   const deleteModal = useModal();
-  
+
   const form = useForm({
     name: '', company: '', email: '', phone: '', address: '',
     category: 'regular' as CustomerCategory, contactPerson: '', remark: '',
@@ -42,7 +42,10 @@ export function CustomersPage() {
   const loadCustomers = useCallback(async () => {
     setIsLoading(true);
     try {
-      const result = await customerService.list({});
+      const result = await customerService.list({
+        page: 0,
+        pageSize: 0
+      });
       if (result.success && result.data) {
         setCustomers(result.data.items || []);
       }
@@ -60,8 +63,8 @@ export function CustomersPage() {
   // 筛选数据
   const filteredCustomers = useMemo(() => {
     return customers.filter((c) => {
-      const matchesSearch = !searchKeyword || 
-        c.name.toLowerCase().includes(searchKeyword.toLowerCase()) || 
+      const matchesSearch = !searchKeyword ||
+        c.name.toLowerCase().includes(searchKeyword.toLowerCase()) ||
         c.company.toLowerCase().includes(searchKeyword.toLowerCase()) ||
         c.phone.includes(searchKeyword);
       const matchesCategory = !filters.category || c.category === filters.category;
@@ -71,7 +74,6 @@ export function CustomersPage() {
   }, [customers, searchKeyword, filters]);
 
   const { paginatedItems, currentPage, totalPages, goToPage, totalItems } = usePagination(filteredCustomers, 10);
-
   const handleView = (customer: Customer) => {
     setSelectedCustomer(customer);
     detailModal.open();
@@ -86,7 +88,7 @@ export function CustomersPage() {
       phone: customer.phone,
       address: customer.address,
       category: customer.category,
-      contactPerson: customer.contact_person || customer.contactPerson || '',
+      contactPerson: customer.contact_person,
       remark: customer.remark,
     });
     createModal.open();
@@ -102,7 +104,7 @@ export function CustomersPage() {
       alert('请输入客户名称');
       return;
     }
-    
+
     setIsSaving(true);
     try {
       const data = {
@@ -142,7 +144,7 @@ export function CustomersPage() {
 
   const handleConfirmDelete = async () => {
     if (!selectedCustomer) return;
-    
+
     try {
       const result = await customerService.delete(selectedCustomer.id);
       if (result.success) {
@@ -199,17 +201,17 @@ export function CustomersPage() {
       render: (item: Customer) => <StatusBadge status={item.status} />,
     },
     {
-      key: 'balance',
-      title: '余额',
+      key: 'contactPerson',
+      title: '联系人',
       render: (item: Customer) => (
-        <span className="font-medium">{formatCurrency(item.balance || 0)}</span>
+        <span className="font-medium">{item.contact_person}</span>
       ),
     },
     {
       key: 'createdAt',
       title: '创建时间',
       render: (item: Customer) => (
-        <span className="text-surface-500">{formatDate(item.created_at || item.createdAt)}</span>
+        <span className="text-surface-500">{formatDate(item.createdAt)}</span>
       ),
     },
     {
@@ -255,7 +257,7 @@ export function CustomersPage() {
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex-1 min-w-[240px]">
-            <SearchInput
+            <SearchInput disabled={createModal.isOpen}
               placeholder="搜索客户名称、公司、电话..."
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
@@ -317,12 +319,12 @@ export function CustomersPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><span className="text-surface-500">联系人:</span> {selectedCustomer.contact_person || selectedCustomer.contactPerson || '-'}</div>
+              <div><span className="text-surface-500">联系人:</span> {selectedCustomer.contactPerson || '-'}</div>
               <div><span className="text-surface-500">电话:</span> {selectedCustomer.phone || '-'}</div>
               <div><span className="text-surface-500">邮箱:</span> {selectedCustomer.email || '-'}</div>
               <div><span className="text-surface-500">来源:</span> {selectedCustomer.source || '-'}</div>
               <div className="col-span-2"><span className="text-surface-500">地址:</span> {selectedCustomer.address || '-'}</div>
-              <div><span className="text-surface-500">信用额度:</span> {formatCurrency(selectedCustomer.credit_limit || selectedCustomer.creditLimit || 0)}</div>
+              <div><span className="text-surface-500">信用额度:</span> {formatCurrency(selectedCustomer.creditLimit || 0)}</div>
               <div><span className="text-surface-500">账户余额:</span> {formatCurrency(selectedCustomer.balance || 0)}</div>
               <div className="col-span-2"><span className="text-surface-500">备注:</span> {selectedCustomer.remark || '无'}</div>
             </div>

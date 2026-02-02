@@ -31,6 +31,40 @@ const tabs = [
   { id: 'completed', label: '已完成' },
 ];
 
+// 后端 snake_case -> 前端 camelCase
+// 后端 snake_case -> 前端 camelCase 统一映射
+const normalizeOrder = (raw: any): Order => {
+  return {
+    ...raw,
+
+    // 类型字段：后端 order_type，前端代码用 type
+    type: raw.type ?? raw.order_type ?? '',
+
+    // 客户字段
+    customerId: raw.customerId ?? raw.customer_id ?? '',
+    customerName: raw.customerName ?? raw.customer_name ?? '',
+
+    // 金额/数量字段
+    totalAmount: raw.totalAmount ?? raw.total_amount ?? 0,
+    discountAmount: raw.discountAmount ?? raw.discount_amount ?? 0,
+    payableAmount: raw.payableAmount ?? raw.payable_amount ?? 0,
+    paidAmount: raw.paidAmount ?? raw.paid_amount ?? 0,
+    totalQuantity: raw.totalQuantity ?? raw.total_quantity ?? 0,
+
+    // 配送字段
+    deliveryAddress: raw.deliveryAddress ?? raw.delivery_address ?? '',
+    deliveryDate: raw.deliveryDate ?? raw.delivery_date ?? '',
+
+    // 操作人
+    operatorId: raw.operatorId ?? raw.operator_id ?? '',
+    operatorName: raw.operatorName ?? raw.operator_name ?? '',
+
+    // 时间字段
+    createdAt: raw.createdAt ?? raw.created_at,
+    updatedAt: raw.updatedAt ?? raw.updated_at,
+  } as Order;
+};
+
 export function OrdersPage() {
   const { searchKeyword, setSearchKeyword, filters, setFilters } = useOrderStore();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -39,7 +73,7 @@ export function OrdersPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const createModal = useModal();
   const detailModal = useModal();
   const deleteModal = useModal();
@@ -59,9 +93,14 @@ export function OrdersPage() {
   const loadOrders = useCallback(async () => {
     setIsLoading(true);
     try {
-      const result = await orderService.list({});
+      const result = await orderService.list({
+        page: 0,
+        pageSize: 0
+      });
       if (result.success && result.data) {
-        setOrders(result.data.items || []);
+        // setOrders(result.data.items || []);
+        const items = (result.data.items || []).map(normalizeOrder);
+        setOrders(items);
       }
     } catch (error) {
       console.error('加载订单列表失败:', error);
@@ -72,7 +111,10 @@ export function OrdersPage() {
 
   const loadCustomers = useCallback(async () => {
     try {
-      const result = await customerService.list({});
+      const result = await customerService.list({
+        page: 0,
+        pageSize: 0
+      });
       if (result.success && result.data) {
         setCustomers(result.data.items || []);
       }
@@ -88,10 +130,10 @@ export function OrdersPage() {
 
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
-      const matchesSearch = !searchKeyword || 
-        o.code.toLowerCase().includes(searchKeyword.toLowerCase()) || 
-        (o.customer_name || o.customerName || '').toLowerCase().includes(searchKeyword.toLowerCase());
-      const orderType = o.order_type || o.type;
+      const matchesSearch = !searchKeyword ||
+        o.code.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+        (o.customerName || '').toLowerCase().includes(searchKeyword.toLowerCase());
+      const orderType = o.type;
       const matchesType = !filters.type || orderType === filters.type;
       const matchesStatus = !filters.status || o.status === filters.status;
       let matchesTab = true;
@@ -228,25 +270,24 @@ export function OrdersPage() {
       render: (item: Order) => (
         <div>
           <p className="font-mono font-medium text-surface-900">{item.code}</p>
-          <p className="text-xs text-surface-500">{formatDate(item.created_at || item.createdAt, 'datetime')}</p>
+          <p className="text-xs text-surface-500">{formatDate(item.createdAt, 'datetime')}</p>
         </div>
       ),
     },
     {
       key: 'customer',
       title: '客户',
-      render: (item: Order) => <span className="font-medium">{item.customer_name || item.customerName || '-'}</span>,
+      render: (item: Order) => <span className="font-medium">{item.customerName || '-'}</span>,
     },
     {
       key: 'type',
       title: '类型',
       render: (item: Order) => {
-        const orderType = item.order_type || item.type;
+        const orderType = item.type;
         return (
-          <span className={`text-xs px-2 py-1 rounded-full ${
-            orderType === 'sale' ? 'bg-primary-50 text-primary-600' :
+          <span className={`text-xs px-2 py-1 rounded-full ${orderType === 'sale' ? 'bg-primary-50 text-primary-600' :
             orderType === 'purchase' ? 'bg-success-50 text-success-600' : 'bg-warning-50 text-warning-600'
-          }`}>
+            }`}>
             {getStatusText(orderType || '')}
           </span>
         );
@@ -257,8 +298,8 @@ export function OrdersPage() {
       title: '金额',
       render: (item: Order) => (
         <div>
-          <p className="font-medium text-surface-900">{formatCurrency(item.payable_amount || item.payableAmount || 0)}</p>
-          <p className="text-xs text-surface-500">{item.total_quantity || item.totalQuantity || 0} 件商品</p>
+          <p className="font-medium text-surface-900">{formatCurrency(item.payableAmount || 0)}</p>
+          <p className="text-xs text-surface-500">{item.totalQuantity || 0} 件商品</p>
         </div>
       ),
     },
@@ -330,30 +371,30 @@ export function OrdersPage() {
 
       <Modal isOpen={createModal.isOpen} onClose={createModal.close} title="新建订单" size="lg">
         <div className="grid grid-cols-2 gap-4">
-          <Select 
-            label="订单类型" 
+          <Select
+            label="订单类型"
             options={[
               { value: 'sale', label: '销售订单' },
               { value: 'purchase', label: '采购订单' },
               { value: 'return', label: '退货订单' },
-            ]} 
-            value={form.values.type} 
-            onChange={(v) => form.handleChange('type', v)} 
+            ]}
+            value={form.values.type}
+            onChange={(v) => form.handleChange('type', v)}
           />
-          <Select 
-            label="选择客户" 
+          <Select
+            label="选择客户"
             options={[
               { value: '', label: '请选择客户' },
               ...customers.map(c => ({ value: c.id, label: c.name }))
-            ]} 
-            value={form.values.customerId} 
+            ]}
+            value={form.values.customerId}
             onChange={(v) => {
               form.handleChange('customerId', v);
               const customer = customers.find(c => c.id === v);
               if (customer) {
                 form.handleChange('customerName', customer.name);
               }
-            }} 
+            }}
           />
           <Input label="客户名称" value={form.values.customerName} onChange={(e) => form.handleChange('customerName', e.target.value)} placeholder="或直接输入客户名称" />
           <Input label="商品数量" type="number" value={form.values.totalQuantity} onChange={(e) => form.handleChange('totalQuantity', Number(e.target.value))} />
@@ -386,18 +427,18 @@ export function OrdersPage() {
             <div className="flex items-center justify-between p-4 bg-surface-50 rounded-xl">
               <div>
                 <p className="font-mono text-lg font-semibold">{selectedOrder.code}</p>
-                <p className="text-sm text-surface-500">{formatDate(selectedOrder.created_at || selectedOrder.createdAt, 'datetime')}</p>
+                <p className="text-sm text-surface-500">{formatDate(selectedOrder.createdAt, 'datetime')}</p>
               </div>
               <StatusBadge status={selectedOrder.status} />
             </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><span className="text-surface-500">客户:</span> {selectedOrder.customer_name || selectedOrder.customerName || '-'}</div>
-              <div><span className="text-surface-500">类型:</span> {getStatusText(selectedOrder.order_type || selectedOrder.type || '')}</div>
-              <div><span className="text-surface-500">商品数量:</span> {selectedOrder.total_quantity || selectedOrder.totalQuantity || 0} 件</div>
-              <div><span className="text-surface-500">订单金额:</span> {formatCurrency(selectedOrder.total_amount || selectedOrder.totalAmount || 0)}</div>
-              <div><span className="text-surface-500">优惠金额:</span> {formatCurrency(selectedOrder.discount_amount || selectedOrder.discountAmount || 0)}</div>
-              <div><span className="text-surface-500">应付金额:</span> <span className="font-semibold text-primary-600">{formatCurrency(selectedOrder.payable_amount || selectedOrder.payableAmount || 0)}</span></div>
-              <div className="col-span-2"><span className="text-surface-500">收货地址:</span> {selectedOrder.delivery_address || selectedOrder.deliveryAddress || '-'}</div>
+              <div><span className="text-surface-500">客户:</span> {selectedOrder.customerName || '-'}</div>
+              <div><span className="text-surface-500">类型:</span> {getStatusText(selectedOrder.type || '')}</div>
+              <div><span className="text-surface-500">商品数量:</span> {selectedOrder.totalQuantity || 0} 件</div>
+              <div><span className="text-surface-500">订单金额:</span> {formatCurrency(selectedOrder.totalAmount || 0)}</div>
+              <div><span className="text-surface-500">优惠金额:</span> {formatCurrency(selectedOrder.discountAmount || 0)}</div>
+              <div><span className="text-surface-500">应付金额:</span> <span className="font-semibold text-primary-600">{formatCurrency(selectedOrder.payableAmount || 0)}</span></div>
+              <div className="col-span-2"><span className="text-surface-500">收货地址:</span> {selectedOrder.deliveryAddress || '-'}</div>
               <div className="col-span-2"><span className="text-surface-500">备注:</span> {selectedOrder.remark || '无'}</div>
             </div>
           </div>
