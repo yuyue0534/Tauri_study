@@ -177,32 +177,6 @@ npm run tauri:build
 
 ---
 
-## 🛣️ 路线图
-
-### Phase 1: 基础功能 ✅
-- [x] 基础组件库
-- [x] 拖拽排序
-- [x] 属性编辑
-- [x] Schema 导入导出
-- [x] 表单渲染与验证
-
-### Phase 2: 进阶功能 (计划中)
-- [ ] 条件显示与联动
-- [ ] 表单版本管理
-- [ ] 模板库
-- [ ] 撤销/重做
-- [ ] 组件分组
-- [ ] 自定义主题
-
-### Phase 3: 扩展能力 (未来)
-- [ ] 低代码平台集成
-- [ ] API 自动生成
-- [ ] 数据库表单同步
-- [ ] 多人协作编辑
-- [ ] 插件系统
-
----
-
 ## 📝 使用示例
 
 ### 1. 创建新表单
@@ -220,43 +194,3 @@ npm run tauri:build
 1. 设计完成后点击"保存"
 2. 下载生成的 JSON 文件
 3. 可在其他系统中复用
-
----
-
-## 🤝 贡献指南
-
-欢迎提交 Issue 和 Pull Request!
-
-### 开发流程
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
-
----
-
-## 📄 许可证
-
-MIT License - 详见 [LICENSE](LICENSE) 文件
-
----
-
-## 🙏 致谢
-
-- [Tauri](https://tauri.app/) - 强大的跨平台应用框架
-- [React](https://react.dev/) - 优秀的 UI 库
-- [Tailwind CSS](https://tailwindcss.com/) - 实用的 CSS 框架
-- [Lucide](https://lucide.dev/) - 精美的图标集
-
----
-
-## 📧 联系方式
-
-- 作者: Your Name
-- 邮箱: your.email@example.com
-- GitHub: [@your-username](https://github.com/your-username)
-
----
-
-**Made with ❤️ using Tauri + React**
